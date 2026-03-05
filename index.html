@@ -22,14 +22,15 @@
     <style>
         body { background-color: #030303; color: white; overflow: hidden; }
         .glass { background: rgba(10, 10, 10, 0.6); backdrop-filter: blur(12px); border-right: 1px solid #1A1A1A; }
-        /* Scrollbar hiding for clean UI */
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-thumb { background: #1A1A1A; border-radius: 4px; }
     </style>
 </head>
 <body class="flex h-screen w-full antialiased relative">
 
-    <audio id="ringtone" loop src="https://www.soundjay.com/phone/sounds/telephone-ring-03a.mp3" preload="auto"></audio>
+    <audio id="ringtone" loop preload="auto">
+        <source src="https://assets.mixkit.co/active_storage/sfx/2873/2873-preview.mp3" type="audio/mpeg">
+    </audio>
 
     <div id="setup-overlay" class="fixed inset-0 bg-cyber-base z-50 flex items-center justify-center">
         <div class="bg-cyber-surface border border-cyber-border p-8 rounded-2xl max-w-md w-full mx-4 shadow-[0_0_50px_rgba(0,229,255,0.05)] text-center">
@@ -39,6 +40,7 @@
             <button onclick="initializeSystem()" class="w-full py-4 rounded-xl bg-cyber-cyan/10 border border-cyber-cyan/30 text-cyber-cyan hover:bg-cyber-cyan hover:text-black transition-all font-bold tracking-widest">
                 INITIALIZE NODE
             </button>
+            <p id="setup-error" class="text-red-500 text-xs mt-4 hidden">Username is currently active on the network. Choose another.</p>
         </div>
     </div>
 
@@ -50,12 +52,17 @@
             <button onclick="toggleSidebar()" class="md:hidden text-gray-400 hover:text-white"><i data-lucide="x"></i></button>
         </div>
         
-        <div class="p-4 border-b border-cyber-border bg-black/40">
-            <label class="text-[10px] text-gray-500 font-mono tracking-widest uppercase mb-1 block">My Node ID</label>
-            <div class="flex items-center gap-2">
-                <div class="w-2 h-2 rounded-full bg-cyber-emerald animate-pulse"></div>
-                <span id="my-id-display" class="font-mono text-cyber-cyan text-sm font-bold">...</span>
+        <div class="p-4 border-b border-cyber-border bg-black/40 flex justify-between items-center">
+            <div>
+                <label class="text-[10px] text-gray-500 font-mono tracking-widest uppercase mb-1 block">My Node ID</label>
+                <div class="flex items-center gap-2">
+                    <div class="w-2 h-2 rounded-full bg-cyber-emerald animate-pulse"></div>
+                    <span id="my-id-display" class="font-mono text-cyber-cyan text-sm font-bold">...</span>
+                </div>
             </div>
+            <button onclick="editUsername()" class="p-2 bg-cyber-surface border border-cyber-border rounded hover:text-cyber-cyan transition-colors" title="Edit Username">
+                <i data-lucide="edit-3" class="w-4 h-4"></i>
+            </button>
         </div>
             
         <div class="p-4 flex-1 overflow-y-auto">
@@ -65,8 +72,7 @@
                 <button onclick="addContact()" class="p-2 bg-cyber-violet/20 border border-cyber-violet/50 text-cyber-violet rounded hover:bg-cyber-violet hover:text-white transition-all"><i data-lucide="plus" class="w-4 h-4"></i></button>
             </div>
             
-            <div id="contacts-list" class="space-y-2">
-                </div>
+            <div id="contacts-list" class="space-y-2"></div>
         </div>
 
         <div class="p-4 border-t border-cyber-border bg-black/40">
@@ -131,22 +137,13 @@
 
     <div id="video-modal" class="fixed inset-0 bg-black z-50 hidden flex-col">
         <div class="absolute top-4 left-4 font-mono text-cyber-cyan text-xs md:text-sm animate-pulse z-20 bg-black/50 p-2 rounded">E2EE MEDIA STREAM // ACTIVE</div>
-        
         <div class="relative w-full h-full flex items-center justify-center bg-cyber-base">
             <video id="remote-video" autoplay playsinline class="w-full h-full object-cover"></video>
-            
             <video id="local-video" autoplay muted playsinline class="absolute top-20 right-4 w-24 md:w-48 aspect-video bg-black border-2 border-cyber-border rounded-xl object-cover shadow-2xl z-10"></video>
-            
             <div class="absolute bottom-10 left-1/2 transform -translate-x-1/2 flex items-center gap-4 bg-cyber-surface/80 backdrop-blur-xl border border-white/10 p-3 md:p-4 rounded-3xl z-20">
-                <button onclick="toggleLocalMic()" class="p-3 md:p-4 rounded-full bg-cyber-base border border-cyber-border text-white hover:text-cyber-cyan transition-colors active-mic-btn">
-                    <i data-lucide="mic" class="w-5 h-5 md:w-6 md:h-6"></i>
-                </button>
-                <button onclick="toggleLocalVideo()" class="p-3 md:p-4 rounded-full bg-cyber-base border border-cyber-border text-white hover:text-cyber-cyan transition-colors active-vid-btn">
-                    <i data-lucide="camera" class="w-5 h-5 md:w-6 md:h-6"></i>
-                </button>
-                <button onclick="endVideoCall()" class="p-3 md:p-4 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors shadow-[0_0_20px_rgba(239,68,68,0.4)]">
-                    <i data-lucide="phone-off" class="w-5 h-5 md:w-6 md:h-6"></i>
-                </button>
+                <button onclick="toggleLocalMic()" class="p-3 md:p-4 rounded-full bg-cyber-base border border-cyber-border text-white hover:text-cyber-cyan transition-colors active-mic-btn"><i data-lucide="mic" class="w-5 h-5 md:w-6 md:h-6"></i></button>
+                <button onclick="toggleLocalVideo()" class="p-3 md:p-4 rounded-full bg-cyber-base border border-cyber-border text-white hover:text-cyber-cyan transition-colors active-vid-btn"><i data-lucide="camera" class="w-5 h-5 md:w-6 md:h-6"></i></button>
+                <button onclick="endVideoCall()" class="p-3 md:p-4 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors shadow-[0_0_20px_rgba(239,68,68,0.4)]"><i data-lucide="phone-off" class="w-5 h-5 md:w-6 md:h-6"></i></button>
             </div>
         </div>
     </div>
@@ -154,9 +151,9 @@
     <script>
         lucide.createIcons();
 
-        // DOM Elements
         const overlay = document.getElementById('setup-overlay');
         const usernameInput = document.getElementById('username-input');
+        const setupError = document.getElementById('setup-error');
         const myIdDisplay = document.getElementById('my-id-display');
         const contactsList = document.getElementById('contacts-list');
         const chatBox = document.getElementById('chat-box');
@@ -169,7 +166,6 @@
         const headerStatus = document.getElementById('header-status');
         const ringtone = document.getElementById('ringtone');
 
-        // State Variables
         let peer = null;
         let dataConnection = null;
         let localStream = null;
@@ -179,8 +175,9 @@
         let isAudioMuted = false;
         let isVideoOff = false;
 
-        // --- 1. INITIALIZATION & PERSISTENCE ---
+        // --- 1. INITIALIZATION & NOTIFICATIONS ---
         window.onload = () => {
+            requestNotificationPermission();
             const savedName = localStorage.getItem('echo_username');
             if (savedName) {
                 myUsername = savedName;
@@ -190,56 +187,90 @@
                 usernameInput.focus();
             }
             loadContacts();
-            
-            // Pre-request media stream in background so controls work before call
             navigator.mediaDevices.getUserMedia({ video: true, audio: true })
                 .then(stream => { localStream = stream; document.getElementById('local-video').srcObject = stream; })
                 .catch(err => console.warn("Background media access denied. Will request on call."));
         };
 
+        function requestNotificationPermission() {
+            if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
+                Notification.requestPermission();
+            }
+        }
+
+        function triggerSystemNotification(title, body) {
+            if ("Notification" in window && Notification.permission === "granted") {
+                new Notification(title, { body: body, icon: "https://cdn-icons-png.flaticon.com/512/3059/3059966.png" });
+            }
+        }
+
         function initializeSystem() {
+            // Unmute and load audio on first click to bypass browser restrictions
+            ringtone.load();
+            
             const name = usernameInput.value.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
             if (!name || name.length < 3) return alert("Username must be at least 3 alphanumeric characters.");
             
+            setupError.classList.add('hidden');
             myUsername = name;
-            localStorage.setItem('echo_username', myUsername);
-            overlay.style.display = 'none';
             startPeer(myUsername);
         }
 
+        // --- 2. EDIT USERNAME LOGIC ---
+        function editUsername() {
+            const confirmEdit = confirm("Editing your username will disconnect your current session. Continue?");
+            if (!confirmEdit) return;
+
+            if (dataConnection) dataConnection.close();
+            if (peer) {
+                peer.destroy();
+                peer = null;
+            }
+            
+            localStorage.removeItem('echo_username');
+            resetUI();
+            usernameInput.value = myUsername;
+            overlay.style.display = 'flex';
+        }
+
         function startPeer(username) {
-            // Using username as the explicit ID
+            if (peer) peer.destroy();
             peer = new Peer(username, { debug: 1 });
 
             peer.on('open', (id) => {
+                localStorage.setItem('echo_username', id); // Save only after successful connect
+                overlay.style.display = 'none';
                 myIdDisplay.innerText = id;
                 appendSystemMessage("Node initialized. Connected to global relay.");
             });
 
             peer.on('error', (err) => {
                 if (err.type === 'unavailable-id') {
-                    alert("Username is currently online somewhere else! Please pick another.");
+                    setupError.classList.remove('hidden'); // Show error on setup screen
                     localStorage.removeItem('echo_username');
-                    location.reload();
+                } else {
+                    console.error(err);
                 }
             });
 
-            // Listen for Incoming Texts
             peer.on('connection', (conn) => {
-                // If someone connects to us, auto-accept data connection
+                triggerSystemNotification("Secure Connection Request", `${conn.peer} is trying to connect.`);
                 setupDataConnection(conn);
             });
 
-            // Listen for Incoming Calls
             peer.on('call', (call) => {
                 incomingCall = call;
                 document.getElementById('caller-name').innerText = call.peer;
                 document.getElementById('incoming-call-modal').classList.replace('hidden', 'flex');
-                ringtone.play().catch(e => console.log("Audio autoplay blocked"));
+                
+                triggerSystemNotification("Incoming Secure Call", `Receiving encrypted video transmission from ${call.peer}`);
+                
+                // Ringtone play logic with catch for strict browsers
+                ringtone.play().catch(e => console.log("Audio autoplay blocked by browser. Relying on visual modal."));
             });
         }
 
-        // --- 2. CONTACTS & UI ---
+        // --- 3. CONTACTS & UI ---
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             const backdrop = document.getElementById('mobile-backdrop');
@@ -251,7 +282,7 @@
             const contacts = JSON.parse(localStorage.getItem('echo_contacts') || '[]');
             contactsList.innerHTML = '';
             contacts.forEach(c => {
-                if(c === myUsername) return; // Don't show self
+                if(c === myUsername) return; 
                 const div = document.createElement('div');
                 div.className = "flex items-center justify-between p-3 bg-cyber-surface border border-cyber-border rounded-lg cursor-pointer hover:border-cyber-cyan transition-all";
                 div.innerHTML = `
@@ -287,9 +318,9 @@
             loadContacts();
         }
 
-        // --- 3. CONNECTION LOGIC ---
+        // --- 4. CONNECTION LOGIC ---
         function connectToPartner(partnerId) {
-            if(window.innerWidth < 768) toggleSidebar(); // auto close sidebar on mobile
+            if(window.innerWidth < 768) toggleSidebar(); 
             appendSystemMessage(`Initializing secure handshake with ${partnerId}...`);
             const conn = peer.connect(partnerId);
             setupDataConnection(conn);
@@ -314,11 +345,12 @@
                 messageInput.placeholder = "Transmit secure payload...";
                 messageInput.focus();
                 
-                chatBox.innerHTML = ''; // Clear old chat
+                chatBox.innerHTML = ''; 
                 appendSystemMessage("Handshake verified. E2EE active.");
             });
 
             dataConnection.on('data', (data) => {
+                triggerSystemNotification(`Message from ${conn.peer}`, data);
                 appendMessage(data, false);
             });
 
@@ -348,15 +380,12 @@
             messageInput.value = '';
         });
 
-        // --- 4. MEDIA TOGGLES & VIDEO CALLS ---
-        
-        // Universal function to toggle Mic
+        // --- 5. MEDIA TOGGLES & VIDEO CALLS ---
         function toggleLocalMic() {
             isAudioMuted = !isAudioMuted;
             if (localStream) {
                 localStream.getAudioTracks().forEach(track => track.enabled = !isAudioMuted);
             }
-            // Update UI Icons
             const preIcon = document.getElementById('pre-mic-icon');
             preIcon.setAttribute('data-lucide', isAudioMuted ? 'mic-off' : 'mic');
             document.querySelectorAll('.active-mic-btn').forEach(btn => {
@@ -365,13 +394,11 @@
             lucide.createIcons();
         }
 
-        // Universal function to toggle Video
         function toggleLocalVideo() {
             isVideoOff = !isVideoOff;
             if (localStream) {
                 localStream.getVideoTracks().forEach(track => track.enabled = !isVideoOff);
             }
-            // Update UI Icons
             const preIcon = document.getElementById('pre-vid-icon');
             preIcon.setAttribute('data-lucide', isVideoOff ? 'camera-off' : 'camera');
             document.querySelectorAll('.active-vid-btn').forEach(btn => {
@@ -385,7 +412,6 @@
                 try {
                     localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
                     document.getElementById('local-video').srcObject = localStream;
-                    // Apply current toggle states to new stream
                     localStream.getAudioTracks().forEach(track => track.enabled = !isAudioMuted);
                     localStream.getVideoTracks().forEach(track => track.enabled = !isVideoOff);
                 } catch (err) {
@@ -443,7 +469,7 @@
             currentCall = null;
         }
 
-        // --- 5. UTILS ---
+        // --- 6. UTILS ---
         function appendMessage(text, isMe) {
             const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             const msgDiv = document.createElement('div');
